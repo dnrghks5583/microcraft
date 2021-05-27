@@ -70,17 +70,7 @@ public class ChestMenu extends Menu {
 
         boolean drop = ControlHandler.DROP.pressedTick();
         if (ControlHandler.MENU_SELECT.pressedTick() || drop) {
-            InventoryMenu from = this.playerMenu.focused ? this.playerMenu : this.chestMenu,
-                to = from == this.playerMenu ? this.chestMenu : this.playerMenu;
-
-            List<ItemStack> fromItems = from.getItems();
-            if (from.selectedIndex >= 0 && from.selectedIndex < fromItems.size()) {
-                ItemStack s = fromItems.get(from.selectedIndex);
-
-                if (s.instance.item.isDroppable()) {
-                    to.inventory.add(from.inventory.remove(s.instance.item, drop ? 1 : s.size));
-                }
-            }
+            moveItem(drop);
         }
 
         for (Menu m : this.submenus) {
@@ -88,6 +78,19 @@ public class ChestMenu extends Menu {
         }
     }
 
+	private void moveItem(boolean drop) {
+		InventoryMenu from = this.playerMenu.focused ? this.playerMenu : this.chestMenu,
+		    to = from == this.playerMenu ? this.chestMenu : this.playerMenu;
+
+		List<ItemStack> fromItems = from.getItems();
+		if (from.selectedIndex >= 0 && from.selectedIndex < fromItems.size()) {
+		    ItemStack s = fromItems.get(from.selectedIndex);
+
+		    if (s.instance.item.isDroppable()) {
+		        to.inventory.add(from.inventory.remove(s.instance.item, drop ? 1 : s.size));
+		    }
+		}
+	}
     @Override
     public void update() {
         super.update();
