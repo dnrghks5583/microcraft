@@ -68,14 +68,13 @@ public class PlayerInventoryMenu extends InventoryMenu {
         super.tick();
 
         List<ItemStack> items = this.getItems();
-        ItemStack selectedItem = this.selectedIndex >= 0 && this.selectedIndex < items.size() ?
-            items.get(this.selectedIndex) : null;
+        final boolean isValidIndex = this.selectedIndex >= 0 && this.selectedIndex < items.size();
+        ItemStack selectedItem =  isValidIndex ? items.get(this.selectedIndex) : null;
         this.player.equipped = selectedItem;
 
         if (this.showArmor) {
-            if (ControlHandler.MENU_EQUIP.pressedTick() &&
-                selectedItem != null &&
-                selectedItem.instance.item instanceof ItemArmor) {
+            final boolean isValidArmor = selectedItem != null && selectedItem.instance.item instanceof ItemArmor;
+            if (ControlHandler.MENU_EQUIP.pressedTick() && isValidArmor) {
                 ItemArmor armor = (ItemArmor) selectedItem.instance.item;
 
                 if (this.player.armor[armor.slot] == selectedItem) {
@@ -89,9 +88,8 @@ public class PlayerInventoryMenu extends InventoryMenu {
             this.armorMenu.tick();
         }
 
-        if (ControlHandler.DROP.pressedTick() &&
-            selectedItem != null &&
-            selectedItem.instance.item.isDroppable()) {
+        final boolean isDroppableItem = selectedItem != null && selectedItem.instance.item.isDroppable();
+        if (ControlHandler.DROP.pressedTick() && isDroppableItem) {
             this.player.drop(selectedItem);
         }
 
