@@ -45,10 +45,7 @@ public class UnderworldGenerator extends LevelGenerator {
 
         for (int y = 0; y < this.level.height; y++) {
             for (int x = 0; x < this.level.width; x++) {
-                if (x == 0 ||
-                    y == 0 ||
-                    x == (this.level.width - 1) ||
-                    y == (this.level.height - 1)) {
+                if (isValid(y, x)) {
                     // borders
                     level.setTile(x, y, this.rock.id);
                     continue;
@@ -59,24 +56,39 @@ public class UnderworldGenerator extends LevelGenerator {
                     nt = FMath.safepow(this.noise.eval(x / 16.0f, y / 16.0f, ot), 1.3);
 
                 // compute height, make higher closer to edges
-                double dist = FMath.norm(
-                    Math.abs(x - (this.level.width / 2.0)) / (this.level.width / 2.0),
-                    Math.abs(y - (this.level.height / 2.0)) / (this.level.height / 2.0)),
-                    h = nb + (nr * 0.5) + (dist > (1.0 - (32 * (1.0 / this.level.width))) ? 0.4 : 0.0);
+                double h = getDist(y, x, nb, nr);
 
-                int tile;
-                if (h > -0.05) {
-                    tile = this.rock.id;
-                } else if (nt > 0.2) {
-                    tile = this.dirt.id;
-                } else {
-                    tile = this.ground.id;
-                }
-
-                level.setTile(x, y, tile);
+                level.setTile(x, y, getTileID(nt, h));
             }
         }
     }
+
+	private double getDist(int y, int x, double nb, double nr) {
+		double dist = FMath.norm(
+		    Math.abs(x - (this.level.width / 2.0)) / (this.level.width / 2.0),
+		    Math.abs(y - (this.level.height / 2.0)) / (this.level.height / 2.0)),
+		    h = nb + (nr * 0.5) + (dist > (1.0 - (32 * (1.0 / this.level.width))) ? 0.4 : 0.0);
+		return h;
+	}
+
+	private boolean isValid(int y, int x) {
+		return x == 0 ||
+		    y == 0 ||
+		    x == (this.level.width - 1) ||
+		    y == (this.level.height - 1);
+	}
+
+	private int getTileID(double nt, double h) {
+		int tile;
+		if (h > -0.05) {
+		    tile = this.rock.id;
+		} else if (nt > 0.2) {
+		    tile = this.dirt.id;
+		} else {
+		    tile = this.ground.id;
+		}
+		return tile;
+	}
 
     // place ores
     public void ore() {
@@ -116,31 +128,35 @@ public class UnderworldGenerator extends LevelGenerator {
 
             i++;
 
-            int s = Global.random.nextInt(3),
+            checkValidation(tile, x, y);
+        }
+    }
+
+	private void checkValidation(Tile tile, int x, int y) {
+		int s = Global.random.nextInt(3),
                 l = s + Global.random.nextInt(3),
                 w = s + Global.random.nextInt(3);
 
-            for (int yy = x; yy < x + l; yy++) {
-                for (int xx = y; xx < x + w; xx++) {
-                    // check valid
-                    boolean valid = true;
-                    for (Direction d : Direction.ALL) {
-                        int t = this.level.getTile(xx + d.x, yy + d.y);
-                        if (!this.isValidForPool(tile, t)) {
-                            valid = false;
-                            break;
-                        }
-                    }
+		for (int yy = x; yy < x + l; yy++) {
+		    for (int xx = y; xx < x + w; xx++) {
+		        // check valid
+		        boolean valid = true;
+		        for (Direction d : Direction.ALL) {
+		            int t = this.level.getTile(xx + d.x, yy + d.y);
+		            if (!this.isValidForPool(tile, t)) {
+		                valid = false;
+		                break;
+		            }
+		        }
 
-                    if (!valid) {
-                        continue;
-                    }
+		        if (!valid) {
+		            continue;
+		        }
 
-                    this.level.setTile(xx, yy, tile.id);
-                }
-            }
-        }
-    }
+		        this.level.setTile(xx, yy, tile.id);
+		    }
+		}
+	}
 
     @Override
     public void generate() {
