@@ -19,7 +19,8 @@ public class DefaultStairsGenerator extends StairsGenerator {
 
     private final Random random;
     private final int count, lowerReqs, upperReqs;
-
+   
+    
     public DefaultStairsGenerator(long seed, Level lower, Level upper, int count, int lowerReqs, int upperReqs) {
         super(lower, upper);
         this.random = new Random(seed);
@@ -32,44 +33,53 @@ public class DefaultStairsGenerator extends StairsGenerator {
     }
 
     private boolean checkRequirements(Level level, int x, int y, int reqs) {
-        if ((reqs & REQUIRE_ROCKS) != 0) {
+        return requireRock(level, x, y, reqs) & requireOpen(level, x, y, reqs) & reqiureLiquid(level, x, y, reqs);
+    }
+
+	private boolean requireRock(Level level, int x, int y, int reqs) {
+		if (isReq(reqs, REQUIRE_ROCKS)) {
             for (Direction d : Direction.ALL) {
                 if (level.getTile(x + d.x, y + d.y) != Tile.ROCK.id) {
                     return false;
                 }
             }
         }
+		return true;
+	}
 
-        if ((reqs & REQUIRE_OPEN) != 0) {
+	private boolean requireOpen(Level level, int x, int y, int reqs) {
+		if (isReq(reqs, REQUIRE_OPEN)) {
             for (Direction d : Direction.ALL) {
                 if (Tile.TILES[level.getTile(x + d.x, y + d.y)].isSolid()) {
                     return false;
                 }
             }
         }
+		return true;
+	}
 
-        if ((reqs & REQUIRE_NO_LIQUID) != 0) {
+	private boolean reqiureLiquid(Level level, int x, int y, int reqs) {
+		if (isReq(reqs, REQUIRE_NO_LIQUID)) {
             for (Direction d : Direction.ALL) {
                 if (Tile.TILES[level.getTile(x + d.x, y + d.y)] instanceof TileLiquid) {
                     return false;
                 }
             }
         }
+		return true;
+	}
 
-        return true;
-    }
+	private boolean isReq(int reqs, int thing) {
+		return (reqs & thing) != 0;
+	}
 
     @Override
     public void generate() {
         int i = 0, n = 0;
         while (n < count && i < MAX_TRIES) {
             int x = this.random.nextInt(this.lower.width), y = this.random.nextInt(this.lower.height);
-
             // never allow placement on top of existing stairs
-            if (!(Tile.TILES[this.lower.getTile(x, y)] instanceof TileStair) &&
-                !(Tile.TILES[this.upper.getTile(x, y)] instanceof TileStair) &&
-                this.checkRequirements(lower, x, y, this.lowerReqs) &&
-                this.checkRequirements(upper, x, y, this.upperReqs)) {
+            if (checkTile(x, y)) {
                 // generate here!
                 this.lower.setTile(x, y, Tile.STAIR_UP.id);
                 this.upper.setTile(x, y, Tile.STAIR_DOWN.id);
@@ -80,7 +90,18 @@ public class DefaultStairsGenerator extends StairsGenerator {
         }
 
         // place one set in the center of each level, ignoring requirements
-        if (i == MAX_TRIES && n == 0) {
+        ignoringReq(i, n);
+    }
+
+	private boolean checkTile(int x, int y) {
+		return !(Tile.TILES[this.lower.getTile(x, y)] instanceof TileStair) &&
+		    !(Tile.TILES[this.upper.getTile(x, y)] instanceof TileStair) &&
+		    this.checkRequirements(lower, x, y, this.lowerReqs) &&
+		    this.checkRequirements(upper, x, y, this.upperReqs);
+	}
+
+	private void ignoringReq(int i, int n) {
+		if (i == MAX_TRIES && n == 0) {
             System.err.println(
                 "ERROR: could not generate any stairs between levels " +
                 this.lower.depth + " and " + this.upper.depth +
@@ -95,5 +116,5 @@ public class DefaultStairsGenerator extends StairsGenerator {
                     ". Tried to place " + this.count + "."
             );
         }
-    }
+	}
 }
