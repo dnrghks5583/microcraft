@@ -32,13 +32,10 @@ public class OverworldGenerator extends LevelGenerator {
             }
         }
     }
-
-	private double getDist(int y, int x, double nh, double nr) {
-		double dist = FMath.norm(
-		    Math.abs(x - (this.level.width / 2.0)) / (this.level.width / 2.0),
-		    Math.abs(y - (this.level.height / 2.0)) / (this.level.height / 2.0)),
-		    h = nh + (nr * 0.5) + (dist > (1.0 - (32 * (1.0 / this.level.width))) ? -0.3 : 0.0);
-		return h;
+    
+    @Override
+	protected double getNum() {
+		return -0.3;
 	}
 
 	private int getTileClass(double nt, double nb, double h) {
@@ -179,10 +176,12 @@ public class OverworldGenerator extends LevelGenerator {
 
     @Override
     public void generate() {
-        this.setProgress(
-            Font.Colors.GREY + "LEVEL " + this.level.depth + ":" +
-            Font.Colors.YELLOW + "FORMING...", 0.0);
-        this.base();
+        super.generate();
+    }
+
+	@Override
+	protected void moreGenerate() {
+		this.base();
         this.setProgress(
             Font.Colors.GREY + "LEVEL " + this.level.depth + ":" +
                 Font.Colors.YELLOW + "ERODING...", 0.0);
@@ -191,5 +190,5 @@ public class OverworldGenerator extends LevelGenerator {
             Font.Colors.GREY + "LEVEL " + this.level.depth + ":" +
                 Font.Colors.YELLOW + "PLANTING...", 0.0);
         this.flora();
-    }
+	}
 }
