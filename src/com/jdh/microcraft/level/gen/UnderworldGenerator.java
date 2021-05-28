@@ -62,13 +62,9 @@ public class UnderworldGenerator extends LevelGenerator {
             }
         }
     }
-
-	private double getDist(int y, int x, double nb, double nr) {
-		double dist = FMath.norm(
-		    Math.abs(x - (this.level.width / 2.0)) / (this.level.width / 2.0),
-		    Math.abs(y - (this.level.height / 2.0)) / (this.level.height / 2.0)),
-		    h = nb + (nr * 0.5) + (dist > (1.0 - (32 * (1.0 / this.level.width))) ? 0.4 : 0.0);
-		return h;
+    @Override
+	protected double getNum() {
+		return 0.4;
 	}
 
 	private boolean isValid(int y, int x) {
@@ -160,10 +156,12 @@ public class UnderworldGenerator extends LevelGenerator {
 
     @Override
     public void generate() {
-        this.setProgress(
-            Font.Colors.GREY + "LEVEL " + this.level.depth + ":" +
-                Font.Colors.YELLOW + "FORMING...", 0.0);
-        this.base();
+        super.generate();
+    }
+
+	@Override
+	protected void moreGenerate() {
+		this.base();
         this.setProgress(
             Font.Colors.GREY + "LEVEL " + this.level.depth + ":" +
                 Font.Colors.YELLOW + "ENRICHING...", 0.33);
@@ -173,5 +171,5 @@ public class UnderworldGenerator extends LevelGenerator {
                 Font.Colors.YELLOW + "LIQUID-IFYING...", 0.66);
         this.pools(Tile.WATER, this.waterChance);
         this.pools(Tile.LAVA, this.lavaChance);
-    }
+	}
 }
