@@ -36,9 +36,16 @@ public class CloudworldGenerator extends LevelGenerator {
 
     @Override
     public void generate() {
-        this.setProgress(
-            Font.Colors.GREY + "LEVEL " + this.level.depth + ":" +
-                Font.Colors.YELLOW + "FORMING...", 0.0);
-        this.base();
+        super.generate();
     }
+    
+	@Override
+	protected double getNum() {
+		return 0;
+	}
+
+	@Override
+	protected void moreGenerate() {
+		this.base();
+	}
 }
