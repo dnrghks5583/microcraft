@@ -46,7 +46,7 @@ public class Level {
 
     // random entity spawn properties
     private List<SpawnProperties> spawnProperties = new ArrayList<>();
-
+    
     @SuppressWarnings("unchecked")
     public Level(long seed, int depth, int width, int height) {
         this.seed = seed;
@@ -57,7 +57,7 @@ public class Level {
         this.data = new int[this.width * this.height];
         this.tileEntities = new ArrayList[this.width * this.height];
     }
-
+    
     public static int toTile(int pixel) {
         return pixel / 16;
     }
@@ -87,20 +87,21 @@ public class Level {
 
     // tries to set a tile, doesn't if it produces any collisions
     public boolean trySetTile(int x, int y, int t) {
-        int ot = this.getTile(x, y), od = this.getData(x, y);
-
         // try to set the tile
         this.setTile(x, y, t);
 
         // check for collisions
-        if (this.getTileEntityCollisions(x, y).size() > 0) {
-            this.setTile(x, y, ot);
-            this.setData(x, y, od);
+        return checkCollisions(x, y);
+    }
+
+	private boolean checkCollisions(int x, int y) {
+		if (this.getTileEntityCollisions(x, y).size() > 0) {
+            this.setTile(x, y, this.getTile(x, y));
+            this.setData(x, y, this.getData(x, y));
             return false;
         }
-
-        return true;
-    }
+		return true;
+	}
 
     public int getData(int x, int y) {
         if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
@@ -182,8 +183,7 @@ public class Level {
                 continue;
             }
 
-            e.x = Level.toPixel(tx);
-            e.y = Level.toPixel(ty);
+            toPixelXY(e, tx, ty);
 
             if (this.getTileCollisions(e).size() == 0 &&
                 this.getEntityCollisions(e).size() == 0) {
@@ -210,25 +210,25 @@ public class Level {
         while (this.getTile(tx, ty) != tile) {
             switch (leg) {
                 case 0 -> {
-                    tx++;
+                	tx++;
                     if (tx == layer) {
-                        leg++;
+                    	leg++;
                     }
                 }
                 case 1 -> {
-                    ty++;
+                	ty++;
                     if (ty == layer) {
-                        leg++;
+                    	leg++;
                     }
                 }
                 case 2 -> {
-                    tx--;
+                	tx--;
                     if (-tx == layer) {
-                        leg++;
+                    	leg++;
                     }
                 }
                 case 3 -> {
-                    ty--;
+                	ty--;
                     if (-ty == layer) {
                         leg = 0;
                         layer++;
@@ -244,56 +244,57 @@ public class Level {
             }
         }
 
-        e.x = Level.toPixel(tx);
-        e.y = Level.toPixel(ty);
+        this.toPixelXY(e, tx, ty);
         this.addEntity(e);
     }
+
+	private void toPixelXY(Entity e, int tx, int ty) {
+		e.x = Level.toPixel(tx);
+        e.y = Level.toPixel(ty);
+	}
 
     // returns a list of entities which collide with a tile
     public List<Entity> getTileEntityCollisions(int x, int y) {
         List<Entity> result = new ArrayList<>();
         Tile t = Tile.TILES[this.getTile(x, y)];
 
-        for (int i = -1; i <= 1; i++) {
+        tileCollisions(x, y, result, t);
+
+        return result;
+    }
+    
+	private boolean isCollision(int x, int y, Tile t, int i, int j, Entity e) {
+		return t.collides(this, i, j, e) && AABB.collide(
+				e.x, e.y, e.x + e.width, e.y + e.width,
+			Level.toPixel(x) + t.getCollisionOffsetX(),
+			Level.toPixel(y) + t.getCollisionOffsetY(),
+			Level.toPixel(x) + t.getCollisionOffsetX() + t.getCollisionWidth(),
+			Level.toPixel(y) + t.getCollisionOffsetY() + t.getCollisionHeight()
+		);
+	}
+	
+	private void tileCollisions(int x, int y, List<Entity> result, Tile t) {
+		for (int i = -1; i <= 1; i++) {
             for (int j = -1; j <= 1; j++) {
                 int tx = x + i, ty = y + j;
 
                 List<Entity> entities = this.getEntities(tx, ty);
 
-                for (Entity e : entities) {
-                    int x0 = e.x, y0 = e.y, x1 = e.x + e.width, y1 = e.y + e.width;
-                    if (t.collides(this, i, j, e) && AABB.collide(
-                        x0, y0, x1, y1,
-                        Level.toPixel(x) + t.getCollisionOffsetX(),
-                        Level.toPixel(y) + t.getCollisionOffsetY(),
-                        Level.toPixel(x) + t.getCollisionOffsetX() + t.getCollisionWidth(),
-                        Level.toPixel(y) + t.getCollisionOffsetY() + t.getCollisionHeight()
-                    )) {
-                        result.add(e);
-                    }
-                }
+                for (Entity e : entities) 
+                    if (isCollision(x, y, t, i, j, e)) 
+                        result.add(e); 
             }
         }
-
-        return result;
-    }
+	}
 
     // returns list of tile collisions for an entity
     public List<int[]> getTileCollisions(Entity e) {
         List<int[]> result = new ArrayList<>();
-        int x0 = e.x, y0 = e.y, x1 = e.x + e.width, y1 = e.y + e.width;
-
-        for (int i = Level.toTile(x0); i <= Level.toTile(x1); i++) {
-            for (int j = Level.toTile(y0); j <= Level.toTile(y1); j++) {
+        for (int i = Level.toTile(e.x); i <= Level.toTile( e.x + e.width); i++) {
+            for (int j = Level.toTile(e.y); j <= Level.toTile(e.y + e.width); j++) {
                 Tile t = Tile.TILES[this.getTile(i, j)];
 
-                if (t.collides(this, i, j, e) && AABB.collide(
-                    x0, y0, x1, y1,
-                    Level.toPixel(i) + t.getCollisionOffsetX(),
-                    Level.toPixel(j) + t.getCollisionOffsetY(),
-                    Level.toPixel(i) + t.getCollisionOffsetX() + t.getCollisionWidth(),
-                    Level.toPixel(j) + t.getCollisionOffsetY() + t.getCollisionHeight()
-                )) {
+                if (isCollision(i, j, t, i, j, e)) {
                     result.add(new int[]{i, j});
                 }
             }
@@ -316,10 +317,7 @@ public class Level {
                 List<Entity> entities = this.getEntities(i, j);
 
                 for (Entity e : entities) {
-                    if (AABB.collide(
-                        x0, y0, x1, y1,
-                        e.x, e.y, e.x + e.width, e.y + e.height
-                    )) {
+                    if (isCollide(x0, y0, x1, y1, e)) {
                         result.add(e);
                     }
                 }
@@ -328,6 +326,13 @@ public class Level {
 
         return result;
     }
+
+	private boolean isCollide(int x0, int y0, int x1, int y1, Entity e) {
+		return AABB.collide(
+		    x0, y0, x1, y1,
+		    e.x, e.y, e.x + e.width, e.y + e.height
+		);
+	}
 
     public void update() {
         for (Entity e : entities) {
@@ -375,7 +380,14 @@ public class Level {
             tx1 = Level.toTile(frustum.maxX) + 1, ty1 = Level.toPixel(frustum.maxY) + 1;
 
         // render tiles
-        for (int y = ty0; y <= ty1; y++) {
+        renderTitle(tx0, ty0, tx1, ty1);
+
+        // render entities in the same tile space
+        renderEntities(tx0, ty0, tx1, ty1);
+    }
+
+	private void renderTitle(int tx0, int ty0, int tx1, int ty1) {
+		for (int y = ty0; y <= ty1; y++) {
             for (int x = tx0; x <= tx1; x++) {
                 if (!this.inBounds(x, y)) {
                     continue;
@@ -390,9 +402,10 @@ public class Level {
                 Tile.TILES[tile].render(this, x, y);
             }
         }
+	}
 
-        // render entities in the same tile space
-        for (int y = ty0; y <= ty1; y++) {
+	private void renderEntities(int tx0, int ty0, int tx1, int ty1) {
+		for (int y = ty0; y <= ty1; y++) {
             for (int x = tx0; x <= tx1; x++) {
                 if (!this.inBounds(x, y)) {
                     continue;
@@ -412,7 +425,7 @@ public class Level {
                 }
             }
         }
-    }
+	}
 
     // update an entity's current tile if it has changed
     private void updateEntityTile(Entity e) {
@@ -452,40 +465,20 @@ public class Level {
 
     public void tick() {
         // random tile ticks
-        Global.random.setSeed(Time.now());
-        for (int i = 0; i < ((this.width * this.height) / (Time.TPS * 60)) * RANDOM_TICKS_PER_MINUTE; i++) {
-            int tx = Global.random.nextInt(this.width), ty = Global.random.nextInt(this.height);
-            Tile.TILES[this.getTile(tx, ty)].randomTick(this, tx, ty);
-        }
+        randomTileTick();
 
         // random entity spawns
-        for (SpawnProperties esp : this.spawnProperties) {
-            if (Global.random.nextInt((60 * 60 * 60) / esp.chance) == 0 &&
-                this.entities.stream()
-                    .filter(e -> e.getClass().isAssignableFrom(esp.cls))
-                    .count() < esp.cap) {
-                this.spawn(esp.spawnFunction.apply(this));
-            }
-        }
-
-        for (Entity e : this.entities) {
-            this.updateEntityTile(e);
-            e.tick();
-            this.updateEntityTile(e);
-        }
+        randomEntitySpawns();
 
         // add requested entities
-        for (Entity e : this.entitiesToAdd) {
-            if (e instanceof EntityPlayer) {
-                this.player = (EntityPlayer) e;
-            }
-
-            this.entities.add(e);
-        }
-        this.entitiesToAdd.clear();
+        addRequest();
 
         // remove/move entities which have requested it
-        for (var it = this.entities.iterator(); it.hasNext(); ) {
+        removeEntities();
+    }
+
+	private void removeEntities() {
+		for (var it = this.entities.iterator(); it.hasNext(); ) {
             Entity e = it.next();
 
             if (e.metadata.remove || e.metadata.moveDepthOnNextTick) {
@@ -500,23 +493,63 @@ public class Level {
 
                 it.remove();
 
-                if (e.metadata.moveDepthOnNextTick) {
-                    // move to other level depth
-                    Level newLevel = Global.game.getLevel(e.metadata.moveToDepth);
-                    newLevel.addEntity(e);
-                    e.tileX = -1;
-                    e.tileY = -1;
-                    e.x = e.metadata.moveToX;
-                    e.y = e.metadata.moveToY;
-                    e.metadata.moveDepthOnNextTick = false;
-                    e.level = newLevel;
-                    e.onDepthChange(this.depth);
-
-                    if (e instanceof EntityPlayer) {
-                        this.player = null;
-                    }
-                }
+                setMetaData(e);
             }
         }
-    }
+	}
+
+	private void setMetaData(Entity e) {
+		if (e.metadata.moveDepthOnNextTick) {
+		    // move to other level depth
+		    Level newLevel = Global.game.getLevel(e.metadata.moveToDepth);
+		    newLevel.addEntity(e);
+		    e.tileX = -1;
+		    e.tileY = -1;
+		    e.x = e.metadata.moveToX;
+		    e.y = e.metadata.moveToY;
+		    e.metadata.moveDepthOnNextTick = false;
+		    e.level = newLevel;
+		    e.onDepthChange(this.depth);
+
+		    if (e instanceof EntityPlayer) {
+		        this.player = null;
+		    }
+		}
+	}
+
+	private void addRequest() {
+		for (Entity e : this.entitiesToAdd) {
+            if (e instanceof EntityPlayer) {
+                this.player = (EntityPlayer) e;
+            }
+
+            this.entities.add(e);
+        }
+        this.entitiesToAdd.clear();
+	}
+
+	private void randomEntitySpawns() {
+		for (SpawnProperties esp : this.spawnProperties) {
+            if (Global.random.nextInt((60 * 60 * 60) / esp.chance) == 0 &&
+                this.entities.stream()
+                    .filter(e -> e.getClass().isAssignableFrom(esp.cls))
+                    .count() < esp.cap) {
+                this.spawn(esp.spawnFunction.apply(this));
+            }
+        }
+
+        for (Entity e : this.entities) {
+            this.updateEntityTile(e);
+            e.tick();
+            this.updateEntityTile(e);
+        }
+	}
+
+	private void randomTileTick() {
+		Global.random.setSeed(Time.now());
+        for (int i = 0; i < ((this.width * this.height) / (Time.TPS * 60)) * RANDOM_TICKS_PER_MINUTE; i++) {
+            int tx = Global.random.nextInt(this.width), ty = Global.random.nextInt(this.height);
+            Tile.TILES[this.getTile(tx, ty)].randomTick(this, tx, ty);
+        }
+	}
 }
