@@ -1,8 +1,10 @@
 package com.jdh.microcraft.level.gen;
 
 import com.jdh.microcraft.Global;
+import com.jdh.microcraft.gfx.Font;
 import com.jdh.microcraft.level.Level;
 import com.jdh.microcraft.level.tile.Tile;
+import com.jdh.microcraft.util.FMath;
 import com.jdh.microcraft.util.OpenSimplexNoise;
 
 import java.util.List;
@@ -15,7 +17,7 @@ public abstract class LevelGenerator {
     protected Level level;
     protected OpenSimplexNoise noise;
     protected Random random;
-
+    
     public LevelGenerator(Level level) {
         this.level = level;
         this.noise = new OpenSimplexNoise(this.level.seed);
@@ -88,5 +90,19 @@ public abstract class LevelGenerator {
         }
     }
 
-    public abstract void generate();
+    public void generate() {
+    	this.setProgress(Font.Colors.GREY + "LEVEL " + this.level.depth + ":" + Font.Colors.YELLOW + "FORMING...", 0.0);
+    	moreGenerate();
+    };
+    
+    protected abstract void moreGenerate();
+    
+    protected double getDist(int y, int x, double nb, double nr) {
+		double dist = FMath.norm(
+		    Math.abs(x - (this.level.width / 2.0)) / (this.level.width / 2.0),
+		    Math.abs(y - (this.level.height / 2.0)) / (this.level.height / 2.0)),
+		    h = nb + (nr * 0.5) + (dist > (1.0 - (32 * (1.0 / this.level.width))) ? getNum() : 0.0);
+		return h;
+	}
+    protected abstract double getNum();
 }
